@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>For Someone Special ❤️</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700&family=Fredoka:wght@300;400;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --accent-1: #ec4899;
+            --accent-2: #f43f5e;
+            --accent-3: #f59e0b;
+            --glass: rgba(255, 255, 255, 0.52);
+            --bg-start: #f9a8d4;
+            --bg-end: #f3e8ff;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Fredoka', 'Baloo 2', sans-serif;
+            height: 100vh;
+            touch-action: manipulation;
+            background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+        }
+
+        #app {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #content {
+            position: relative;
+            z-index: 30;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .step {
+            position: absolute;
+            width: 100%;
+            max-width: 900px;
+            padding: 28px;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+            z-index: 40;
+            max-height: calc(100vh - 120px);
+            overflow: auto;
+            padding-bottom: 30px;
+        }
+
+        .step.active {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4);
+        }
+
+        .text-gradient {
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-2), var(--accent-3));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .emoji {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        #progress-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 400px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+            z-index: 100;
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* player */
+        .player {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.3));
+            padding: 12px;
+            border-radius: 999px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+            max-width: 620px;
+            margin: 0 auto;
+        }
+
+        .play-toggle {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .player-title {
+            font-weight: 700;
+            color: #6b2147;
+        }
+
+        .progress {
+            flex: 1;
+            height: 6px;
+            background: rgba(0, 0, 0, 0.06);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .progress>i {
+            display: block;
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+        }
+
+        .time {
+            font-size: 12px;
+            color: #5b2b3a;
+            min-width: 48px;
+            text-align: right;
+        }
+
+        /* nickname sprinkles (background subtle) */
+        #nickname-sprinkles {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+            overflow: hidden;
+        }
+
+        .sprinkle {
+            position: absolute;
+            bottom: -10%;
+            font-weight: 700;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.06);
+            transform: translateY(0);
+            white-space: nowrap;
+            font-family: 'Baloo 2', 'Fredoka', sans-serif;
+            color: #5b2740;
+            opacity: 0.12;
+            pointer-events: none;
+        }
+
+        /* modal */
+        #final-modal {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            visibility: hidden;
+        }
+
+        #final-modal .modal-inner {
+            background: white;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            max-width: 640px;
+            text-align: center;
+        }
+
+        /* Big Arigatou styling inside modal */
+        .big-arigatou {
+            font-size: 4rem;
+            font-weight: 800;
+            line-height: 1;
+            margin: 8px 0 0 0;
+            background: linear-gradient(90deg, #ff6b9d, #ffb3c6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        .big-arigatou.pop {
+            animation: popIn 900ms cubic-bezier(.2, .9, .3, 1) forwards;
+        }
+
+        @keyframes popIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.6);
+                filter: blur(6px);
+            }
+
+            60% {
+                opacity: 1;
+                transform: scale(1.06);
+                filter: blur(0);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* subtle pulse shadow after pop */
+        .big-arigatou.pulse {
+            animation: pulseGlow 2.5s infinite ease-in-out;
+        }
+
+        @keyframes pulseGlow {
+            0% {
+                text-shadow: 0 0 0 rgba(255, 99, 132, 0.0);
+            }
+
+            50% {
+                text-shadow: 0 8px 24px rgba(255, 99, 132, 0.25);
+            }
+
+            100% {
+                text-shadow: 0 0 0 rgba(255, 99, 132, 0.0);
+            }
+        }
+
+        @media (max-width:640px) {
+            .emoji {
+                font-size: 2.4rem;
+            }
+
+            .step {
+                padding: 18px;
+            }
+
+            .big-arigatou {
+                font-size: 2.4rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div id="canvas-container"></div>
+        <div id="nickname-sprinkles" aria-hidden="true"></div>
+
+        <div id="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+
+        <div id="content">
+            <!-- Step 1 -->
+            <div class="step active" id="step1">
+                <div class="emoji">❤️</div>
+                <h1 class="text-4xl md:text-5xl font-bold mb-6 text-gradient">Hii-Bestieee ✨</h1>
+                <p class="text-xl text-gray-700 mb-8">Here’s a little something from my side, made just for you 💖😊</p>
+                <button class="btn" id="start-btn">Please click, Princess-sama 👑💌</button>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="step" id="step2">
+                <div class="emoji">🎉</div>
+                <h2 class="text-3xl md:text-4xl font-bold mb-6 text-gradient">Happieeee Birthday, my Guardian Angel
+                    😇💫!</h2>
+                <p class="text-lg text-gray-700 mb-6">You’re literally the cheat code to happiness— cute, funny, a bit
+                    chaotic, but still my favorite person 💕🥳</p>
+                <button class="btn" id="next-btn-2">What makes you special? (nice question)</button>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="step" id="step3">
+                <h2 class="text-3xl md:text-4xl font-bold mb-8 text-gradient">Here's why you're an angel</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div class="reason-card">
+                        <div class="emoji text-3xl">✨</div>
+                        <h3 class="text-xl font-bold mb-2 text-pink-600">💬 Whispers I Never Regret</h3>
+                        <p class="text-gray-700">Not once have I ever regretted telling you anything— whether it's silly
+                            gossip or the vulnerable parts of me 🤭💌✨.</p>
+                    </div>
+                    <div class="reason-card">
+                        <div class="emoji text-3xl">😊</div>
+                        <h3 class="text-xl font-bold mb-2 text-pink-600">🌸 The Way You Understand</h3>
+                        <p class="text-gray-700">Never in my life did I think someone would understand me this much. You
+                            even accept the flaws I can't fix myself 🌸🙏.</p>
+                    </div>
+                    <div class="reason-card">
+                        <div class="emoji text-3xl">🌟</div>
+                        <h3 class="text-xl font-bold mb-2 text-pink-600">🐰 Realizations You Gifted Me</h3>
+                        <p class="text-gray-700">You made me realize it's okay to love the little things I love— from
+                            cute stuff to random quirks, without feeling weird about it 🐰💕.</p>
+                    </div>
+                </div>
+                <button class="btn" id="next-btn-3">Please click again, Princess-sama</button>
+            </div>
+
+            <!-- Step 4: Memory Lane -->
+            <!-- Step 4: Memory Lane -->
+            <div class="step" id="step4">
+                <div class="emoji">📸</div>
+                <h2 class="text-3xl md:text-4xl font-bold mb-6 text-gradient">random yap of mine</h2>
+
+                <div class="bg-gradient-to-r from-pink-200 to-rose-200 rounded-xl p-4 mb-8 w-full max-w-lg shadow-lg transform transition hover:scale-[1.02] relative overflow-hidden"
+                    style="box-shadow: 0 0 32px 8px #ffb3c6, 0 8px 30px rgba(0,0,0,0.06); border: 3px solid #ff6b9d; animation: glow 2s infinite alternate;">
+                    <div class="absolute inset-0 pointer-events-none"
+                        style="background: radial-gradient(circle at 80% 20%, #ffe4ef55 0%, transparent 70%);"></div>
+                    <div class="player" id="custom-player"
+                        style="background: linear-gradient(135deg, #fff6fa 80%, #ffe4ef 100%); box-shadow: 0 4px 24px #ffb3c655;">
+                        <div class="play-toggle" id="play-toggle"
+                            style="background: linear-gradient(135deg, #ff6b9d, #f43f5e); font-size: 2rem; box-shadow: 0 0 16px #ffb3c6;">
+                            <span id="play-icon" style="display:inline-block; vertical-align:middle;">&#10084;</span>
+                        </div>
+                        <div class="player-info">
+                            <div class="player-title" style="font-size:1.2rem; color:#d72660; letter-spacing:0.5px;">
+                                La La Land • Piano 🎹
+                            </div>
+                            <div class="player-controls">
+                                <div class="progress" id="player-progress" style="height:10px; border-radius:8px;">
+                                    <i style="background: linear-gradient(90deg, #ff6b9d, #f43f5e);"></i>
+                                </div>
+                                <div class="time" id="player-time" style="color:#d72660; font-weight:600;">0:00</div>
+                            </div>
+                        </div>
+                    </div>
+                <audio id="song" controls autoplay>
+                    <source src="https://docs.google.com/uc?export=download&id=1MQN79hQSUUIJAya5vkcCX3Td_ib9avPK" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+
+                </div>
+
+                <p class="text-lg text-gray-700 mb-6">Okay, my memory isn't the strongest (you know that 😅), but I
+                    remember the tiniest details you share— your favorite songs, movies, random likes… all of it.
+                    I can say it too that i have a person with whom i can share literally anything without a second
+                    thought ... and never regret it... And honestly, I'm really, really, really happy to have someone
+                    like you in my
+                    life 🫶
+
+                    hope u like this gift from ur anixous bitch (me) ..well its more like i wrote evrything ...but just
+                    shut up...and read ...
+                    (Btw, i cried while making this). 😭💌</p>
+                <button class="btn" id="next-btn-4">well theres more 😅</button>
+            </div>
+            <style>
+                @keyframes glow {
+                    from {
+                        box-shadow: 0 0 32px 8px #ffb3c6, 0 8px 30px rgba(0, 0, 0, 0.06);
+                    }
+
+                    to {
+                        box-shadow: 0 0 48px 16px #ff6b9d, 0 8px 30px rgba(0, 0, 0, 0.10);
+                    }
+                }
+            </style>
+            <script>
+                // Enhance play button with heart icon toggle
+                const playToggleEl = document.getElementById('play-toggle');
+                const playIcon = document.getElementById('play-icon');
+                const songE1 = document.getElementById('song');
+                playToggle.addEventListener('click', () => {
+                    if (song.paused) {
+                        song.play();
+                        playIcon.innerHTML = "&#10084;&#65039;"; // filled heart
+                    } else {
+                        song.pause();
+                        playIcon.innerHTML = "&#10084;"; // outline heart
+                    }
+                });
+                song.addEventListener('play', () => { playIcon.innerHTML = "&#10084;&#65039;"; });
+                song.addEventListener('pause', () => { playIcon.innerHTML = "&#10084;"; });
+            </script>
+            <!-- Step 5 -->
+            <div class="step" id="step5">
+                <div class="emoji">🎂</div>
+                <h2 class="text-3xl md:text-4xl font-bold mb-6 text-gradient">My Birthday Wish For You</h2>
+                <p class="text-lg text-gray-700 mb-8">I love your random scenarios, the funny questions you ask, and how
+                    our music taste somehow clicks 🎶✨ And for your bday gift… it’s me—another year’s premium
+                    subscription of "Gossips, drama, sometimes overthinking" (no escape from this, sorry). 🎁🛍️
+                    Thank you for keeping up with me, for understanding my overthinking, and for staying even
+                    when I’m annoying 🙈💖</p>
+                <p class="text-xl font-semibold text-pink-600 mb-8">Happie Birthday, my Princess 👑, my Angel 😇, my
+                    Fairy 🧚‍♀️, my Diva 💃</p>
+                <div><button class="btn" id="confetti-btn">Here's a Big Arigatou💖 🎊</button></div>
+                <p class="mt-8 text-gray-500">Made with ❤️ just for you ✨</p>
+                <div class="mt-4"><button class="btn" id="readmore-btn">Read more about you 💌</button></div>
+            </div>
+
+            <!-- Step 6: More About You -->
+            <div class="step" id="step6">
+                <div class="emoji">🌼</div>
+                <h2 class="text-3xl md:text-4xl font-bold mb-6 text-gradient">More about you</h2>
+                <div class="bg-white/60 rounded-xl p-6 mb-6 max-w-2xl text-left">
+                    <h3 class="font-semibold text-lg mb-2">Little things I adore about u</h3>
+                    <ul class="list-disc pl-5 text-gray-700">
+                        <li>The way you always know how to comfort me 💕</li>
+                        <li>The beautiful compliments you give that make me smile 🌸</li>
+                        <li>How you gently keep me from overthinking ☁️</li>
+                        <li>The way you show your sweet concern for me ✨</li>
+
+                    </ul>
+                </div>
+                <div class="bg-white/60 rounded-xl p-6 mb-6 max-w-2xl text-left">
+                    <h3 class="font-semibold text-lg mb-2">what else </h3>
+                    <p class="text-gray-700">Just wanna let u know : whenever i think of a <b>safe place</b> , its
+                        <b>You</b>
+                        who comes in my mind. I know i can be my true self with u and hope u feel the same . 😊🛡️
+                    </p>
+                    <input type="button" value=""></p>
+                </div>
+                <div class="flex gap-4 justify-center"><button class="btn"
+                        id="back-to-final-from-6">Back</button><button class="btn" id="next-to-7">Read the Letter
+                        💟</button></div>
+            </div>
+
+            <!-- Step 7: Letter -->
+            <div class="step" id="step7">
+                <div class="emoji">✉️</div>
+                <h2 class="text-3xl md:text-4xl font-bold mb-6 text-gradient">A little letter</h2>
+                <div class="bg-white/60 rounded-xl p-6 mb-6 max-w-2xl text-left">
+                    <p class="text-gray-700">My shailaaa, 😭</p>
+                    <p class="text-gray-700 mt-3">well,dont have much to say,but THANK UHHH SO MUCH for evrything. 🙏💕
+                        i am so much grateful that i got a friend like u. Never expected that someone will ever be in my
+                        life who will treat me like u do.. u made me realise many things , and even accepted my flaws.
+                        i literally cry when i realise i have such a beautiful soul as my bestie ;) 😭💖
+                        WELL, HAPPIEE HAPPIEE BIRTHDAYY ONCE AGAINN...to my so much perfect gurlieee... 🎉🎂</p>
+                    <p class="text-gray-700 mt-3">Your girll, 💕</p>
+                    <p class="text-pink-600 font-semibold">— Me 💖</p>
+                </div>
+                <div class="flex gap-4 justify-center"><button class="btn" id="back-to-6">Back</button><button
+                        class="btn" id="finish-btn">Finish 🎆</button></div>
+            </div>
+
+            <!-- Final Modal -->
+            <div id="final-modal" aria-hidden="true">
+                <div class="modal-inner">
+                    <h3 class="text-2xl font-bold text-pink-600">Thank you, Princess 👑</h3>
+                    <p class="mt-4 text-gray-600">Made with all my heart. Hope you felt special — stay cute and keep
+                        shining ✨❤️</p>
+
+                    <!-- Big Arigatou (will animate when shown) -->
+                    <div id="big-arigatou" class="big-arigatou">ありがとう 💕 🎊</div>
+
+                    <div class="mt-6 flex justify-center"><button class="btn" id="close-modal">Close</button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ---------- Three.js Heart Background ----------
+        const container = document.getElementById('canvas-container');
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 30;
+        const heartShape = new THREE.Shape();
+        heartShape.moveTo(0.5, 0.5);
+        heartShape.bezierCurveTo(0.5, 0.5, 1, 0, 0, 0);
+        heartShape.bezierCurveTo(-1, 0, -1, 1.5, -1, 1.5);
+        heartShape.bezierCurveTo(-1, 2.5, 0.5, 3.5, 0.5, 3.5);
+        heartShape.bezierCurveTo(0.5, 3.5, 2, 2.5, 2, 1.5);
+        heartShape.bezierCurveTo(2, 1.5, 2, 0, 1, 0);
+        heartShape.bezierCurveTo(0.5, 0, 0.5, 0.5, 0.5, 0.5);
+        const extrudeSettings = { depth: 0.5, bevelEnabled: true, bevelSegments: 3, bevelSize: 0.2, bevelThickness: 0.3 };
+        const heartGeometry = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
+        const hearts = [];
+        const colors = [0xff6b6b, 0xff8e8e, 0xffb3b3, 0xffd8d8, 0xff9e9e, 0xffc1c1, 0xff6b8e, 0xff8eb3];
+        for (let i = 0; i < 25; i++) {
+            const material = new THREE.MeshPhongMaterial({
+                color: colors[Math.floor(Math.random() * colors.length)],
+                emissive: 0xff0000,
+                emissiveIntensity: 0.1,
+                shininess: 100,
+                transparent: true,
+                opacity: 0.9
+            });
+            const heart = new THREE.Mesh(heartGeometry, material);
+            heart.position.x = (Math.random() - 0.5) * 50;
+            heart.position.y = (Math.random() - 0.5) * 50;
+            heart.position.z = (Math.random() - 0.5) * 50;
+            const scale = Math.random() * 0.8 + 0.5;
+            heart.scale.set(scale, scale, scale);
+            heart.rotation.x = Math.random() * Math.PI;
+            heart.rotation.y = Math.random() * Math.PI;
+            heart.userData = {
+                speedX: Math.random() * 0.02 - 0.01,
+                speedY: Math.random() * 0.02 - 0.01,
+                speedZ: Math.random() * 0.02 - 0.01,
+                rotationSpeedX: Math.random() * 0.01,
+                rotationSpeedY: Math.random() * 0.01,
+                originalX: heart.position.x,
+                originalY: heart.position.y,
+                originalZ: heart.position.z,
+                floatDistance: 2 + Math.random() * 3
+            };
+            scene.add(heart);
+            hearts.push(heart);
+        }
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(1, 1, 1);
+        scene.add(directionalLight);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = Date.now() * 0.001;
+            hearts.forEach(heart => {
+                heart.position.x = heart.userData.originalX + Math.sin(time * heart.userData.speedX * 10) * heart.userData.floatDistance;
+                heart.position.y = heart.userData.originalY + Math.sin(time * heart.userData.speedY * 10) * heart.userData.floatDistance;
+                heart.position.z = heart.userData.originalZ + Math.sin(time * heart.userData.speedZ * 10) * heart.userData.floatDistance;
+                heart.rotation.x += heart.userData.rotationSpeedX;
+                heart.rotation.y += heart.userData.rotationSpeedY;
+            });
+            renderer.render(scene, camera);
+        }
+        animate();
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // ---------- Steps ----------
+        let currentStep = 1;
+        const totalSteps = 7;
+
+        function updateProgressBar() {
+            const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
+            document.getElementById('progress-bar').style.width = progress + '%';
+        }
+
+        function showStep(stepNumber) {
+            document.querySelectorAll('.step').forEach(step => {
+                step.style.pointerEvents = 'none';
+            });
+            document.querySelectorAll('.step').forEach(s => {
+                if (s.classList.contains('active')) {
+                    s.classList.remove('active');
+                    gsap.to(s, { duration: 0.45, y: 12, autoAlpha: 0 });
+                }
+            });
+            const target = document.getElementById(`step${stepNumber}`);
+            if (!target) return;
+            target.classList.add('active');
+            gsap.fromTo(target, { autoAlpha: 0, y: 20 }, {
+                duration: 0.6,
+                autoAlpha: 1,
+                y: 0,
+                onComplete: () => {
+                    target.style.pointerEvents = 'auto';
+                    if (stepNumber === 4) {
+                        try { document.getElementById('song').play(); } catch (e) { }
+                        try {
+                            const vid = document.getElementById('memory-video');
+                            if (vid) vid.play().catch(() => { });
+                        } catch (e) { }
+                    }
+                }
+            });
+            currentStep = stepNumber;
+            updateProgressBar();
+        }
+        updateProgressBar();
+
+        // Basic navigation
+        document.getElementById('start-btn').addEventListener('click', () => { showStep(2); });
+        document.getElementById('next-btn-2').addEventListener('click', () => { showStep(3); });
+        document.getElementById('next-btn-3').addEventListener('click', () => { showStep(4); });
+        document.getElementById('next-btn-4').addEventListener('click', () => { showStep(5); });
+
+        // step6/7 navigation
+        document.getElementById('readmore-btn').addEventListener('click', () => { showStep(6); });
+        document.getElementById('back-to-final-from-6').addEventListener('click', () => { showStep(5); });
+        document.getElementById('next-to-7').addEventListener('click', () => { showStep(7); });
+        document.getElementById('back-to-6').addEventListener('click', () => { showStep(6); });
+
+        // finish from step7 -> show modal (acts like final)
+        document.getElementById('finish-btn').addEventListener('click', () => {
+            // trigger the same final modal flow as confetti button
+            showFinalModalWithArigatou();
+        });
+
+        // ---------- Audio player ----------
+        const song = document.getElementById('song');
+        const playToggle = document.getElementById('play-toggle');
+        const progressFill = document.querySelector('#player-progress > i');
+        const timeText = document.getElementById('player-time');
+
+        function formatTime(s) {
+            if (isNaN(s)) return '0:00';
+            const m = Math.floor(s / 60);
+            const sec = Math.floor(s % 60).toString().padStart(2, '0');
+            return `${m}:${sec}`;
+        }
+        playToggle.addEventListener('click', () => {
+            if (song.paused) { song.play(); playToggle.textContent = '▌▌'; } else { song.pause(); playToggle.textContent = '▶'; }
+        });
+        song.addEventListener('play', () => { playToggle.textContent = '▌▌'; });
+        song.addEventListener('pause', () => { playToggle.textContent = '▶'; });
+        song.addEventListener('timeupdate', () => {
+            if (song.duration) {
+                const pct = (song.currentTime / song.duration) * 100;
+                progressFill.style.width = pct + '%';
+                timeText.textContent = formatTime(song.currentTime);
+            }
+        });
+        document.getElementById('player-progress').addEventListener('click', (e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const pct = x / rect.width;
+            if (song.duration) song.currentTime = pct * song.duration;
+        });
+
+        // ---------- Confetti & modal ----------
+        let continuousHeartsInterval = null;
+        function startContinuousHearts() {
+            if (continuousHeartsInterval) return;
+            continuousHeartsInterval = setInterval(() => {
+                confetti({ particleCount: 6, spread: 45, origin: { y: 0.9 }, shapes: ['heart'], colors: ['#ff1493', '#ff69b4'] });
+            }, 900);
+        }
+        function stopContinuousHearts() {
+            if (!continuousHeartsInterval) return;
+            clearInterval(continuousHeartsInterval);
+            continuousHeartsInterval = null;
+        }
+
+        function showFinalModalWithArigatou() {
+            // burst confetti and hearts animation
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#ff0000', '#ff69b4', '#ff1493', '#ffc0cb'] });
+            setTimeout(() => {
+                confetti({ particleCount: 30, spread: 60, origin: { y: 0.5 }, shapes: ['heart'], colors: ['#ff0000', '#ff69b4'] });
+            }, 300);
+            setTimeout(() => {
+                confetti({ particleCount: 20, angle: 60, spread: 55, origin: { x: 0 }, shapes: ['heart'], colors: ['#ff0000', '#ff69b4'] });
+                confetti({ particleCount: 20, angle: 120, spread: 55, origin: { x: 1 }, shapes: ['heart'], colors: ['#ff0000', '#ff69b4'] });
+            }, 600);
+
+            // animate hearts in three.js (fade & float)
+            hearts.forEach(heart => {
+                gsap.to(heart.position, { y: heart.position.y - 30, duration: 3, ease: 'power1.out' });
+                gsap.to(heart.material, { opacity: 0, duration: 3, ease: 'power1.out' });
+            });
+
+            // show modal and arigatou
+            setTimeout(() => {
+                const modal = document.getElementById('final-modal');
+                const big = document.getElementById('big-arigatou');
+                modal.style.visibility = 'visible';
+                // ensure arigatou resets then animates
+                big.classList.remove('pop', 'pulse');
+                // small timeout to allow reflow
+                setTimeout(() => {
+                    big.classList.add('pop');
+                    // after pop, add pulsing shadow
+                    setTimeout(() => big.classList.add('pulse'), 900);
+                }, 60);
+                startContinuousHearts();
+            }, 900);
+        }
+
+        document.getElementById('confetti-btn').addEventListener('click', () => {
+            showFinalModalWithArigatou();
+        });
+
+        document.getElementById('close-modal').addEventListener('click', () => {
+            document.getElementById('final-modal').style.visibility = 'hidden';
+            stopContinuousHearts();
+            // restore hearts' opacity after modal close
+            hearts.forEach(heart => {
+                gsap.to(heart.material, { opacity: 0.9, duration: 1.2, ease: 'power1.out' });
+            });
+        });
+
+        // ---------- Nickname sprinkles ----------
+        const nicknames = ['Princess', 'Fairy', 'Angel', 'Diva', 'My Love', 'Cutie', 'Baby', 'Boo'];
+        function spawnSprinkle() {
+            const cont = document.getElementById('nickname-sprinkles');
+            if (!cont) return;
+            const span = document.createElement('span');
+            span.className = 'sprinkle';
+            span.textContent = nicknames[Math.floor(Math.random() * nicknames.length)];
+            const size = 12 + Math.floor(Math.random() * 14);
+            span.style.fontSize = size + 'px';
+            const left = Math.random() * 85 + 5;
+            span.style.left = left + '%';
+            span.style.bottom = '-5%';
+            span.style.opacity = 0.12;
+            span.style.fontFamily = "'Baloo 2', 'Fredoka', sans-serif";
+            span.style.background = 'rgba(255,255,255,0.12)';
+            span.style.color = '#5b2740';
+            span.style.boxShadow = 'none';
+            span.style.pointerEvents = 'none';
+            cont.appendChild(span);
+            gsap.to(span, { y: -(window.innerHeight + 120), duration: 6 + Math.random() * 4, ease: 'power1.out', opacity: 0, onComplete: () => { span.remove(); } });
+        }
+        const _sprinkleInterval = setInterval(spawnSprinkle, 900);
+
+        // ---------- Reasons generator & song reminder ----------
+        // (Removed — per your request, content after step7 was deleted)
+
+        // ---------- Quiz logic ----------
+        // (Removed — per your request)
+
+        // ---------- Pointer interaction to assist autoplay ----------
+        let firstInteraction = false;
+        document.addEventListener('pointerdown', () => {
+            if (!firstInteraction) {
+                firstInteraction = true;
+                if (currentStep >= 4 && song.paused) song.play().catch(() => { });
+                const vid = document.getElementById('memory-video');
+                if (vid && vid.paused && currentStep >= 4) vid.play().catch(() => { });
+            }
+        }, { once: true });
+    </script>
+</body>
+
+</html>
